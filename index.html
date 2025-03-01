@@ -52,9 +52,10 @@
         <input type="color" id="snake-color" onchange="changeSnakeColor(this.value)" value="#00ff00">
     </div>
 
-    <audio id="bg-music" src="https://www.soundjay.com/button/sounds/button-3.mp3" loop></audio>
-    <audio id="eat-sound" src="https://www.soundjay.com/button/sounds/button-1.mp3"></audio>
-    <audio id="crash-sound" src="https://www.soundjay.com/button/sounds/button-10.mp3"></audio>
+    <!-- File suara lokal -->
+    <audio id="bg-music" src="background.mp3" loop></audio>
+    <audio id="eat-sound" src="eat.mp3"></audio>
+    <audio id="crash-sound" src="crash.mp3"></audio>
 
     <script>
         const canvas = document.getElementById("game-board");
@@ -193,7 +194,9 @@
         }
 
         function playSound(id) {
-            document.getElementById(id).play();
+            const sound = document.getElementById(id);
+            sound.currentTime = 0; // Reset sound to start
+            sound.play();
         }
 
         window.addEventListener("keydown", e => {
