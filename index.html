@@ -43,51 +43,32 @@
             cursor: pointer;
         }
 
-        /* Styling untuk tombol kontrol mobile */
-        .mobile-controls {
+        /* Styling untuk joystick */
+        .joystick-container {
             display: none; /* Sembunyikan secara default */
-            grid-template-areas:
-                ". up ."
-                "left down right";
-            gap: 10px;
+            position: relative;
+            width: 100px;
+            height: 100px;
             margin-top: 20px;
         }
 
-        .mobile-controls button {
-            background-color: #333;
-            border: none;
-            color: #fff;
-            padding: 20px;
-            font-size: 24px;
+        .joystick {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.5);
             border-radius: 50%;
-            cursor: pointer;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            touch-action: none; /* Hindari scroll saat menggunakan joystick */
         }
 
-        .mobile-controls button:active {
-            background-color: #555;
-        }
-
-        #up { grid-area: up; }
-        #left { grid-area: left; }
-        #down { grid-area: down; }
-        #right { grid-area: right; }
-
-        /* Tampilkan tombol kontrol hanya di perangkat mobile */
+        /* Tampilkan joystick hanya di perangkat mobile */
         @media (max-width: 600px) {
-            .mobile-controls {
-                display: none; /* Sembunyikan secara default */
+            .joystick-container {
+                display: block; /* Tampilkan joystick di mobile */
             }
-            .show-controls-button {
-                display: block; /* Tampilkan tombol "Show Controls" */
-            }
-        }
-
-        .show-controls-button {
-            display: none; /* Sembunyikan tombol "Show Controls" secara default */
-            margin-top: 10px;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -103,15 +84,9 @@
         <button onclick="toggleFullscreen()">Fullscreen</button>
         <input type="color" id="snake-color" onchange="changeSnakeColor(this.value)" value="#00ff00">
 
-        <!-- Tombol untuk menampilkan/sembunyikan kontrol -->
-        <button class="show-controls-button" onclick="toggleControls()">Show Controls</button>
-
-        <!-- Tombol kontrol untuk mobile -->
-        <div class="mobile-controls" id="mobile-controls">
-            <button id="up" onclick="moveUp()">⬆️</button>
-            <button id="left" onclick="moveLeft()">⬅️</button>
-            <button id="down" onclick="moveDown()">⬇️</button>
-            <button id="right" onclick="moveRight()">➡️</button>
+        <!-- Joystick untuk mobile control -->
+        <div class="joystick-container">
+            <div class="joystick" id="joystick"></div>
         </div>
     </div>
 
@@ -266,30 +241,51 @@
             snakeColor = color; // Update warna ular
         }
 
-        // Fungsi untuk tombol kontrol mobile
-        function moveUp() {
-            if (direction.y === 0) direction = { x: 0, y: -1 };
-        }
-        function moveDown() {
-            if (direction.y === 0) direction = { x: 0, y: 1 };
-        }
-        function moveLeft() {
-            if (direction.x === 0) direction = { x: -1, y: 0 };
-        }
-        function moveRight() {
-            if (direction.x === 0) direction = { x: 1, y: 0 };
-        }
+        // Joystick logic
+        const joystick = document.getElementById("joystick");
+        const joystickContainer = document.querySelector(".joystick-container");
+        let isJoystickActive = false;
 
-        // Fungsi untuk menampilkan/sembunyikan tombol kontrol
-        function toggleControls() {
-            const controls = document.getElementById("mobile-controls");
-            const showControlsButton = document.querySelector(".show-controls-button");
-            if (controls.style.display === "none" || controls.style.display === "") {
-                controls.style.display = "grid"; // Tampilkan tombol kontrol
-                showControlsButton.textContent = "Hide Controls"; // Ubah teks tombol
-            } else {
-                controls.style.display = "none"; // Sembunyikan tombol kontrol
-                showControlsButton.textContent = "Show Controls"; // Ubah teks tombol
+        joystick.addEventListener("touchstart", (e) => {
+            isJoystickActive = true;
+            updateJoystick(e);
+        });
+
+        joystick.addEventListener("touchmove", (e) => {
+            if (isJoystickActive) {
+                updateJoystick(e);
+            }
+        });
+
+        joystick.addEventListener("touchend", () => {
+            isJoystickActive = false;
+            direction = { x: 0, y: 0 }; // Reset arah saat joystick dilepas
+            joystick.style.transform = "translate(-50%, -50%)"; // Kembalikan joystick ke posisi tengah
+        });
+
+        function updateJoystick(e) {
+            const touch = e.touches[0];
+            const rect = joystickContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            const deltaX = touchX - centerX;
+            const deltaY = touchY - centerY;
+            const angle = Math.atan2(deltaY, deltaX);
+            const distance = Math.min(Math.hypot(deltaX, deltaY), 50); // Batasi jarak joystick
+
+            // Update posisi joystick
+            joystick.style.transform = `translate(${distance * Math.cos(angle)}px, ${distance * Math.sin(angle)}px)`;
+
+            // Update arah ular berdasarkan joystick
+            if (distance > 10) { // Hanya update arah jika joystick digerakkan cukup jauh
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    direction = { x: Math.sign(deltaX), y: 0 }; // Gerak horizontal
+                } else {
+                    direction = { x: 0, y: Math.sign(deltaY) }; // Gerak vertikal
+                }
             }
         }
 
