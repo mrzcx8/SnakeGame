@@ -36,6 +36,48 @@
             font-size: 16px;
             cursor: pointer;
         }
+
+        input[type="color"] {
+            margin-top: 10px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        /* Styling untuk tombol kontrol mobile */
+        .mobile-controls {
+            display: none; /* Sembunyikan secara default */
+            grid-template-areas:
+                ". up ."
+                "left down right";
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .mobile-controls button {
+            background-color: #333;
+            border: none;
+            color: #fff;
+            padding: 20px;
+            font-size: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .mobile-controls button:active {
+            background-color: #555;
+        }
+
+        #up { grid-area: up; }
+        #left { grid-area: left; }
+        #down { grid-area: down; }
+        #right { grid-area: right; }
+
+        /* Tampilkan tombol kontrol hanya di perangkat mobile */
+        @media (max-width: 600px) {
+            .mobile-controls {
+                display: grid;
+            }
+        }
     </style>
 </head>
 <body>
@@ -48,29 +90,32 @@
         <button onclick="setDifficulty('hard')">Hard</button>
         <button onclick="togglePause()">Pause/Resume</button>
         <button onclick="toggleFullscreen()">Fullscreen</button>
-        <button onclick="toggleMusic()">Toggle Music</button>
         <input type="color" id="snake-color" onchange="changeSnakeColor(this.value)" value="#00ff00">
-    </div>
 
-    <!-- File suara lokal -->
-    <audio id="bg-music" src="background.mp3" loop></audio>
-    <audio id="eat-sound" src="eat.mp3"></audio>
-    <audio id="crash-sound" src="crash.mp3"></audio>
+        <!-- Tombol kontrol untuk mobile -->
+        <div class="mobile-controls">
+            <button id="up" onclick="moveUp()">⬆️</button>
+            <button id="left" onclick="moveLeft()">⬅️</button>
+            <button id="down" onclick="moveDown()">⬇️</button>
+            <button id="right" onclick="moveRight()">➡️</button>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById("game-board");
         const ctx = canvas.getContext("2d");
         const gridSize = 20;
         const tileCount = 20;
-        let snake = [{ x: 10, y: 10 }];
+        let snake = [{ x: 10, y: 10 }]; // Koordinat awal ular
         let direction = { x: 0, y: 0 };
         let food = { x: 5, y: 5 };
-        let powerUp = null;
+        let powerUp = null; // Power-up (boost)
         let score = 0;
         let highScore = localStorage.getItem("highScore") || 0;
-        let speed = 100;
+        let speed = 100; // Kecepatan normal
         let isPaused = false;
-        let snakeColor = "#00ff00";
+        let snakeColor = "#00ff00"; // Warna default ular (hijau)
+        let isBoostActive = false; // Status boost
 
         document.getElementById("high-score").innerText = "High Score: " + highScore;
 
@@ -103,40 +148,41 @@
             if (head.x === food.x && head.y === food.y) {
                 score++;
                 document.getElementById("score").innerText = "Score: " + score;
-                playSound("eat-sound");
                 placeFood();
                 if (score > highScore) {
                     highScore = score;
                     localStorage.setItem("highScore", highScore);
                     document.getElementById("high-score").innerText = "High Score: " + highScore;
                 }
-            } else {
-                snake.pop();
             }
 
             // Check if snake eats power-up
             if (powerUp && head.x === powerUp.x && head.y === powerUp.y) {
-                speed = 50; // Speed boost
-                setTimeout(() => speed = 100, 5000); // Reset speed after 5 seconds
-                powerUp = null;
+                activateBoost(); // Aktifkan boost
+                powerUp = null; // Hapus power-up dari papan
+            }
+
+            // Jika tidak makan, kurangi panjang ular
+            if (head.x !== food.x || head.y !== food.y) {
+                snake.pop();
             }
         }
 
         function draw() {
-            ctx.fillStyle = "#000";
+            ctx.fillStyle = "#000"; // Background hitam
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw snake
-            ctx.fillStyle = snakeColor;
+            ctx.fillStyle = snakeColor; // Gunakan warna ular yang dipilih
             snake.forEach(segment => ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize));
 
             // Draw food
-            ctx.fillStyle = "red";
+            ctx.fillStyle = "red"; // Warna makanan
             ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
 
-            // Draw power-up
+            // Draw power-up (boost)
             if (powerUp) {
-                ctx.fillStyle = "blue";
+                ctx.fillStyle = "blue"; // Warna power-up
                 ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
             }
         }
@@ -150,19 +196,38 @@
                 placeFood();
             }
 
-            // Randomly place power-up
-            if (Math.random() < 0.1) { // 10% chance to spawn power-up
-                powerUp = { x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount) };
+            // Randomly place power-up (10% chance)
+            if (Math.random() < 0.1) {
+                powerUp = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount)
+                };
+                // Pastikan power-up tidak muncul di atas ular atau makanan
+                if (snake.some(segment => segment.x === powerUp.x && segment.y === powerUp.y)) {
+                    powerUp = null;
+                    placeFood();
+                }
             }
         }
 
+        function activateBoost() {
+            if (isBoostActive) return; // Jika boost sudah aktif, jangan aktifkan lagi
+            isBoostActive = true;
+            speed = 50; // Kecepatan boost (lebih cepat)
+            setTimeout(() => {
+                speed = 100; // Kembalikan ke kecepatan normal setelah 5 detik
+                isBoostActive = false;
+            }, 5000); // Boost aktif selama 5 detik
+        }
+
         function resetGame() {
-            playSound("crash-sound");
             snake = [{ x: 10, y: 10 }];
             direction = { x: 0, y: 0 };
             score = 0;
             document.getElementById("score").innerText = "Score: " + score;
             placeFood();
+            isBoostActive = false; // Reset status boost
+            speed = 100; // Kembalikan ke kecepatan normal
         }
 
         function setDifficulty(level) {
@@ -183,20 +248,22 @@
             }
         }
 
-        function toggleMusic() {
-            const music = document.getElementById("bg-music");
-            if (music.paused) music.play();
-            else music.pause();
-        }
-
         function changeSnakeColor(color) {
-            snakeColor = color;
+            snakeColor = color; // Update warna ular
         }
 
-        function playSound(id) {
-            const sound = document.getElementById(id);
-            sound.currentTime = 0; // Reset sound to start
-            sound.play();
+        // Fungsi untuk tombol kontrol mobile
+        function moveUp() {
+            if (direction.y === 0) direction = { x: 0, y: -1 };
+        }
+        function moveDown() {
+            if (direction.y === 0) direction = { x: 0, y: 1 };
+        }
+        function moveLeft() {
+            if (direction.x === 0) direction = { x: -1, y: 0 };
+        }
+        function moveRight() {
+            if (direction.x === 0) direction = { x: 1, y: 0 };
         }
 
         window.addEventListener("keydown", e => {
