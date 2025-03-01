@@ -23,6 +23,7 @@
         #game-board {
             border: 1px solid #fff;
             background-color: #000;
+            position: relative;
         }
 
         #score, #high-score {
@@ -35,6 +36,17 @@
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
+        }
+
+        .emoji {
+            position: absolute;
+            font-size: 20px;
+        }
+
+        .snake-img {
+            position: absolute;
+            width: 20px;
+            height: 20px;
         }
     </style>
 </head>
@@ -71,6 +83,13 @@
         let speed = 100;
         let isPaused = false;
         let snakeColor = "#00ff00";
+
+        // Emoji untuk makanan
+        const foodEmoji = "🍎";
+
+        // Gambar ular (gunakan URL gambar atau gambar lokal)
+        const snakeImage = new Image();
+        snakeImage.src = "https://static.vecteezy.com/system/resources/previews/024/044/012/non_2x/cute-green-cartoon-snake-vector.jpg"; // Ganti dengan URL gambar ular
 
         document.getElementById("high-score").innerText = "High Score: " + highScore;
 
@@ -127,18 +146,21 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw snake
-            ctx.fillStyle = snakeColor;
-            snake.forEach(segment => ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize));
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    // Gambar kepala ular
+                    ctx.drawImage(snakeImage, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                } else {
+                    // Gambar badan ular
+                    ctx.fillStyle = snakeColor;
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                }
+            });
 
-            // Draw food
+            // Draw food (emoji)
+            ctx.font = "20px Arial";
             ctx.fillStyle = "red";
-            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-
-            // Draw power-up
-            if (powerUp) {
-                ctx.fillStyle = "blue";
-                ctx.fillRect(powerUp.x * gridSize, powerUp.y * gridSize, gridSize, gridSize);
-            }
+            ctx.fillText(foodEmoji, food.x * gridSize, (food.y + 1) * gridSize);
         }
 
         function placeFood() {
